@@ -34,6 +34,7 @@
 
 #include "defines.h"
 #include "pt.h"
+#include "pt_blist.h"
 #include "pt_connection.h"
 #include "pt_oauth.h"
 #include "pt_requestor.h"
@@ -276,7 +277,7 @@ static void pt_init (PurplePlugin * plugin)
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 #endif /* ENABLE_NLS */
 
-	purple_debug_info ("pt", "starting up\n");
+	purple_debug_info ("pt", "************ yes *************** starting up\n");
 
 	((PurplePluginProtocolInfo *) plugin->info->extra_info)->protocol_options = pt_protocol_options ();
 
@@ -438,67 +439,6 @@ GList          *pt_status_types(PurpleAccount * account)
     return g_list_reverse(types);
 }
 
-GList          *pt_blist_node_menu(PurpleBlistNode * node)
-{
-    GList          *menu = NULL;
-#if 0
-    if (PURPLE_BLIST_NODE_IS_CHAT(node)) {
-        GList          *submenu = NULL;
-        PurpleChat     *chat = PURPLE_CHAT(node);
-        GHashTable     *components = purple_chat_get_components(chat);
-        char           *label = g_strdup_printf(_("Automatically open chat on new tweets (Currently: %s)"), (pt_blist_chat_is_auto_open(chat) ? _("On") : _("Off")));
-        const char     *chat_type_str = g_hash_table_lookup(components, "chat_type");
-        TwitterChatType chat_type = chat_type_str == NULL ? 0 : strtol(chat_type_str, NULL, 10);
-
-        PurpleMenuAction *action = purple_menu_action_new(label,
-                                                          PURPLE_CALLBACK(twitter_blist_chat_auto_open_toggle),
-                                                          NULL, /* userdata passed to the callback */
-                                                          NULL);    /* child menu items */
-        g_free(label);
-        purple_debug_info(purple_account_get_protocol_id(purple_chat_get_account(PURPLE_CHAT(node))), "providing buddy list context menu item\n");
-        menu = g_list_append(menu, action);
-        if (chat_type == TWITTER_CHAT_SEARCH) {
-            TWITTER_ATTACH_SEARCH_TEXT cur_attach_search_text = twitter_blist_chat_attach_search_text(chat);
-
-            label = g_strdup_printf(_("No%s"), cur_attach_search_text == TWITTER_ATTACH_SEARCH_TEXT_NONE ? _(" (set)") : "");
-            action = purple_menu_action_new(label, PURPLE_CALLBACK(twitter_blist_char_attach_search_toggle), (gpointer) TWITTER_ATTACH_SEARCH_TEXT_NONE, NULL);
-            g_free(label);
-            submenu = g_list_append(submenu, action);
-
-            label = g_strdup_printf(_("Prepend%s"), cur_attach_search_text == TWITTER_ATTACH_SEARCH_TEXT_PREPEND ? _(" (set)") : "");
-            action = purple_menu_action_new(label, PURPLE_CALLBACK(twitter_blist_char_attach_search_toggle), (gpointer) TWITTER_ATTACH_SEARCH_TEXT_PREPEND, NULL);
-            g_free(label);
-            submenu = g_list_append(submenu, action);
-
-            label = g_strdup_printf(_("Append%s"), cur_attach_search_text == TWITTER_ATTACH_SEARCH_TEXT_APPEND ? _(" (set)") : "");
-            action = purple_menu_action_new(label, PURPLE_CALLBACK(twitter_blist_char_attach_search_toggle), (gpointer) TWITTER_ATTACH_SEARCH_TEXT_APPEND, NULL);
-            g_free(label);
-            submenu = g_list_append(submenu, action);
-
-            label = g_strdup_printf(_("Tag all chats with search term:"));
-            action = purple_menu_action_new(label, NULL, NULL, submenu);
-            g_free(label);
-            menu = g_list_append(menu, action);
-        }
-    } else if (PURPLE_BLIST_NODE_IS_BUDDY(node)) {
-        PurpleMenuAction *action;
-        purple_debug_info(purple_account_get_protocol_id(purple_buddy_get_account(PURPLE_BUDDY(node))), "providing buddy list context menu item\n");
-        if (twitter_option_default_dm(purple_buddy_get_account(PURPLE_BUDDY(node)))) {
-            action = purple_menu_action_new(_("@Message"), PURPLE_CALLBACK(twitter_blist_buddy_at_msg), NULL,   /* userdata passed to the callback */
-                                            NULL);  /* child menu items */
-        } else {
-            action = purple_menu_action_new(_("Direct Message"), PURPLE_CALLBACK(twitter_blist_buddy_dm), NULL, /* userdata passed to the callback */
-                                            NULL);  /* child menu items */
-        }
-        menu = g_list_append(menu, action);
-        action = purple_menu_action_new(_("Clear Reply Marker"), PURPLE_CALLBACK(twitter_blist_buddy_clear_reply), NULL, NULL);
-        menu = g_list_append(menu, action);
-    } else {
-    }
-#endif
-    return menu;
-}
-
 GList          *pt_chat_info(PurpleConnection * gc)
 {
     struct proto_chat_entry *pce;   
@@ -642,7 +582,7 @@ void pt_close(PurpleConnection * gc)
     if (twitter->requestor)
         twitter_requestor_free(twitter->requestor);
 
-    twitter_connection_foreach_endpoint_im(twitter, twitter_endpoint_im_free_foreach, NULL);
+    pt_connection_foreach_endpoint_im(twitter, twitter_endpoint_im_free_foreach, NULL);
 
     if (twitter->get_friends_timer)
         purple_timeout_remove(twitter->get_friends_timer);
@@ -904,27 +844,6 @@ void pt_set_buddy_icon(PurpleConnection * gc, PurpleStoredImage * img)
     purple_debug_info("pt", "setting %s's buddy icon to %s\n", gc->account->username, purple_imgstore_get_filename(img));
 }
 
-PurpleChat     *pt_blist_chat_find(PurpleAccount * account, const char *name)
-{
-    PurpleChat     *c = NULL;
-#if 0
-    static char    *timeline = "Timeline: ";
-    static char    *search = "Search: ";
-    static char    *list = "List: ";
-    if (strlen(name) > strlen(timeline) && !strncmp(timeline, name, strlen(timeline))) {
-        c = pt_blist_chat_find_timeline(account, 0);
-    } else if (strlen(name) > strlen(search) && !strncmp(search, name, strlen(search))) {
-        c = pt_blist_chat_find_search(account, name + strlen(search));
-    } else if (strlen(name) > strlen(list) && !strncmp(list, name, strlen(list))) {
-        c = pt_blist_chat_find_list(account, name + strlen(list));
-    } else {
-        purple_debug_error(purple_account_get_protocol_id(account), "Invalid call to %s; assuming \"search\" for %s\n", G_STRFUNC, name);
-        c = pt_blist_chat_find_search(account, name);
-    }
-#endif
-    return c;
-}
-
 gboolean pt_usernames_match(PurpleAccount * account, const gchar * u1, const gchar * u2)
 {
     gboolean        match;
@@ -952,17 +871,21 @@ void pt_connected(PurpleAccount * account)
                                       2);        /* total number of steps */
     purple_connection_set_state(gc, PURPLE_CONNECTED);
 
-#if 0
-    twitter_blist_chat_timeline_new(account, 0);
+	// Create the timeline as a chat in the buddy list, but only if it doesn't already exist.
+	pt_blist_chat_timeline_new(account, 0);
 
-        /* Retrieve user's saved search queries */
+#if 0
+	/* Retrieve user's saved search queries */
         twitter_api_get_saved_searches(purple_account_get_requestor(account), get_saved_searches_cb, NULL, NULL);
 
         twitter_api_get_personal_lists(purple_account_get_requestor(account), get_lists_cb, NULL, NULL);
         twitter_api_get_subscribed_lists(purple_account_get_requestor(account), get_lists_cb, NULL, NULL);
-    /* Install periodic timers to retrieve replies and dms */
-    twitter_connection_foreach_endpoint_im(twitter, twitter_endpoint_im_start_foreach, NULL);
+#endif
 
+	// Install periodic timers to retrieve replies and DMs from the server.
+    pt_connection_foreach_endpoint_im(pt, pt_endpoint_im_start_foreach, NULL);
+
+#if 0
     /* Immediately retrieve replies */
 
     get_friends_timer_timeout = twitter_option_user_status_timeout(account);

@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include "pt_requestor.h"
+#include "pt_endpoint_im.h"
 
 typedef struct {
     PtRequestor *requestor;
@@ -46,7 +47,7 @@ typedef struct {
     //int             chat_id;
 } PtConnectionData;
 
-//void            twitter_connection_foreach_endpoint_im(TwitterConnectionData * twitter, void (*cb) (TwitterConnectionData * twitter, TwitterEndpointIm * im, gpointer data), gpointer data);
+void            pt_connection_foreach_endpoint_im(PtConnectionData * pt, void (*cb) (PtConnectionData * pt, PtEndpointIm * im, gpointer data), gpointer data);
 //TwitterEndpointIm *twitter_connection_get_endpoint_im(TwitterConnectionData * twitter, TwitterImType type);
 //void            twitter_connection_set_endpoint_im(TwitterConnectionData * twitter, TwitterImType type, TwitterEndpointIm * endpoint);
 

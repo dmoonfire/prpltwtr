@@ -9,6 +9,8 @@ PT_SOURCES = \
 				   pt.c \
 				   pt_api.h \
 				   pt_api.c \
+				   pt_blist.h \
+				   pt_blist.c \
 				   pt_prefs.h \
 				   pt_prefs.c \
 				   pt_oauth.c \
